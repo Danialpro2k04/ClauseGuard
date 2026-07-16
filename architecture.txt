@@ -1,0 +1,15 @@
+4 agents: Intake (reads doc, picks question) → Retrieval (searches policy corpus) → Risk Scoring (HIGH/MED/LOW + why) → Human Approval (pauses for a person to click yes/no). State passes between them as one shared object.
+
+The 4 agents and what each does:
+
+Intake/Classifier agent — reads document, decides document type and routing
+Retrieval agent — RAG query against your Qdrant policy corpus, returns top-k chunks
+Risk-Scoring agent — reasons over retrieved chunks, produces structured output: {risk_level: HIGH/MEDIUM/LOW, justification: "...", cited_clauses: [...]}
+Human-in-the-loop approval node — graph pauses, sends a notification (even just a print statement for now, Slack/email later), resumes when you call graph.invoke(Command(resume=True), config).
+
+
+
+State schema (Python TypedDict with all fields the graph passes between nodes)
+MCP server: which 2–3 tools you'll expose (retrieve_policy_context, score_risk, get_pending_approvals)
+Eval plan: 30 labeled test cases, which Ragas metrics, target thresholds
+Deployment: Docker → GitHub Actions → Azure Container Apps (same pipeline as your existing project)
