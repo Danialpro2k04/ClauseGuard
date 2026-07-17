@@ -1,0 +1,164 @@
+========================================================================
+CLAUSEGUARD MCP SERVER — TOOL SPECIFICATION
+========================================================================
+
+WHY THIS FILE MATTERS:
+In MCP, the "description" field for each tool is not just documentation
+for humans. It is the ONLY thing the calling AI (e.g. Claude Desktop)
+reads to decide (a) whether to call this tool at all, and (b) what
+arguments to pass. A vague description means the AI either never calls
+your tool, or calls it wrong. Write these like you're briefing a very
+literal new employee who has never seen your system before.
+
+Your MCP server exposes 3 tools. Each one maps directly to a piece of
+your ClauseGuard pipeline you're already building — you are not
+inventing new logic, just exposing existing pipeline steps through the
+MCP protocol so any MCP client (Claude Desktop, Cursor, etc.) can call
+them directly.
+
+========================================================================
+TOOL 1: retrieve_policy_context
+========================================================================
+
+WHAT IT WRAPS:
+Your Retrieval agent's logic — the same Qdrant semantic search you're
+already building for the graph. This tool exposes that search as a
+standalone callable, independent of the full graph.
+
+PURPOSE (in plain English):
+Given a plain-English question about a contract clause, search the
+company policy corpus and return the policy text that's actually
+relevant — nothing invented, nothing guessed, only real chunks that
+exist in the corpus (or an empty list if nothing is relevant).
+
+TOOL DESCRIPTION (this exact text goes in your @server.tool() decorator):
+"Searches the company's compliance policy corpus for text relevant to
+a given contract clause or compliance question. Use this when you need
+to check whether specific contract language may conflict with company
+policy on data handling, security, liability, IP, termination, audits,
+or subcontracting. Returns the most relevant policy excerpts, or an
+empty list if no relevant policy exists — do not assume relevance if
+none is returned."
+
+INPUT ARGUMENTS:
+  query: str
+    - A natural-language question, e.g. "Does 72-hour breach
+      notification comply with our policy?"
+  top_k: int (optional, default 5)
+    - How many policy chunks to return
+
+OUTPUT:
+  List[str] — the actual policy text chunks, or [] if nothing relevant
+  was found. IMPORTANT: return [] honestly when nothing matches. Do
+  NOT return the closest chunk just because top_k asked for one — this
+  is exactly the false-connection failure mode your trap eval cases
+  (029-036) are designed to catch.
+
+WHY THIS TOOL MATTERS FOR YOUR PORTFOLIO:
+This is your RAG pipeline, but now callable directly from Claude
+Desktop or Cursor — meaning a recruiter or interviewer can open their
+own MCP client, point it at your server, and query your policy corpus
+live, without running your whole app. That's a genuinely rare thing
+for a junior candidate to be able to demo.
+
+========================================================================
+TOOL 2: score_risk
+========================================================================
+
+WHAT IT WRAPS:
+Your Risk-Scoring agent — the node that takes a contract clause plus
+retrieved policy context and produces a structured HIGH/MEDIUM/LOW/
+UNKNOWN verdict with justification.
+
+PURPOSE (in plain English):
+Given a contract clause and the relevant policy text (from Tool 1, or
+supplied directly), assess how risky that clause is and explain why,
+citing only the policy text it was actually given.
+
+TOOL DESCRIPTION:
+"Assesses compliance risk for a contract clause against provided
+policy context. Returns a structured risk level (HIGH, MEDIUM, LOW, or
+UNKNOWN) with a justification grounded strictly in the policy text
+provided — never invents policy requirements that were not supplied.
+Use UNKNOWN when the provided policy context does not address the
+clause at all, rather than guessing. Typically called after
+retrieve_policy_context to score the clause against what was found."
+
+INPUT ARGUMENTS:
+  contract_clause: str
+    - The raw contract text being reviewed
+  policy_context: List[str]
+    - The policy chunks to check against (usually Tool 1's output)
+
+OUTPUT:
+  {
+    "risk_level": "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN",
+    "justification": str,       # must reference specific policy_context
+    "cited_clauses": List[str]  # which policy_context items were used
+  }
+
+WHY THIS TOOL MATTERS FOR YOUR PORTFOLIO:
+This is the tool that proves you understand structured output and
+grounding — the AI is forced to justify itself using ONLY what it was
+handed, which is exactly what your Ragas faithfulness score measures.
+Mention this connection explicitly in your README and interviews.
+
+========================================================================
+TOOL 3: get_pending_approvals
+========================================================================
+
+WHAT IT WRAPS:
+The state of your Human-in-the-Loop node — specifically, which graph
+runs are currently paused, waiting for a human to click approve/reject.
+
+PURPOSE (in plain English):
+Lets a human (or another tool) check "what's sitting in my queue right
+now waiting for my decision?" without digging through logs or a
+database directly.
+
+TOOL DESCRIPTION:
+"Returns all ClauseGuard analysis runs currently paused and awaiting
+human approval, including the contract clause under review, the
+system's proposed risk level, and how long each has been pending. Use
+this to check the current approval queue before deciding what to
+review next. This tool only reads state — it does not approve or
+reject anything."
+
+INPUT ARGUMENTS:
+  (none required)
+  status_filter: str (optional, default "pending")
+    - Could later support "approved" / "rejected" too
+
+OUTPUT:
+  List[{
+    "run_id": str,
+    "contract_clause": str,
+    "proposed_risk_level": str,
+    "waiting_since": str  # timestamp
+  }]
+
+WHY THIS TOOL MATTERS FOR YOUR PORTFOLIO:
+This is the piece that makes the HITL pattern feel real instead of
+theoretical — it shows the human side of "human-in-the-loop" as an
+actual queue someone can check, not just a pause() call in your code.
+
+========================================================================
+A NOTE ON WHAT YOU ARE **NOT** BUILDING YET
+========================================================================
+Notice there is no `approve_request` or `reject_request` tool in this
+list. That's intentional for now — an MCP tool that can actually
+APPROVE a compliance decision is a bigger responsibility (a write
+action, not a read action) and worth adding later once the first 3
+are solid and tested. Ship read-only tools first, add the write tool
+in Week 3 once you trust the rest of the pipeline.
+
+========================================================================
+BUILD ORDER (do them in this order, each is roughly half a day):
+========================================================================
+1. get_pending_approvals  — easiest, no LLM calls, just reads state
+2. retrieve_policy_context — wraps existing Qdrant search you'll have
+   built earlier in the week
+3. score_risk — hardest, wraps your structured-output LLM call
+
+Build in this order so you have something working and testable early,
+and save the hardest one for when you're warmed up on the other two.
