@@ -7,7 +7,7 @@ class EvalCase(TypedDict):
     question:str             #what the intake agent should generate
     relevant_policy_chunks:List[str]  #the relevant policy chunks that should be used to answer the question
     expected_risk_level:Literal["HIGH", "MEDIUM", "LOW", "UNKNOWN"] 
-    expected_resoning_contains : List[str]  #the expected reasoning that should be used to answer the question
+    expected_reasoning_contains : List[str]  #the expected reasoning that should be used to answer the question
 
 case_001: EvalCase = {
     "id": "001_clear_violation",
