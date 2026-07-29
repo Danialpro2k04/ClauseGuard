@@ -51,6 +51,3 @@ This resolved all import and memory compatibility conflicts.
 
 ---
 
-## Next Steps
-1. **Pipeline Orchestration**: Implement the four core state nodes using LangGraph/LangChain.
-2. **Evaluation Framework**: Set up 30-48 labeled mock compliance test cases to evaluate chunk-retrieval accuracy and model scoring consistency.
