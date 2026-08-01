@@ -4,6 +4,29 @@ An MCP-native agentic system that automates contract compliance reviews. ClauseG
 
 ---
 
+## Why the live demo doesn't run through MCP
+
+This repo includes a full MCP (Model Context Protocol) server in
+`server/mcp_server.py`, but the hosted live demo doesn't call it. That's
+intentional, not a shortcut.
+
+MCP servers communicate over local transport (stdio) with a client running
+on the same machine — like Claude Desktop or Cursor — not with anonymous
+visitors over the public web. There's no equivalent of a "public MCP
+endpoint" the way there is with a REST API.
+
+So this project has two front doors to the same core agents:
+
+- **Live demo** (`clauseguardlive.streamlit.app`) — a Streamlit app that
+  calls the Intake, Retrieval, and Risk-Scoring agents directly, so anyone
+  can try the full pipeline instantly with zero setup.
+- **MCP server** (`server/mcp_server.py`) — exposes `search_policy_docs`
+  and `log_for_human_review` as MCP tools, so the same capability can be
+  plugged directly into an MCP client like Claude Desktop for local use.
+
+Same agents, same logic — two different doors, built for two different
+audiences.
+
 ##  System Architecture
 
 The pipeline operates via a 4-stage agentic workflow integrated with Model Context Protocol (MCP) tools and a local vector database.
