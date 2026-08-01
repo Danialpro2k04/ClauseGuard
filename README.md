@@ -1,6 +1,6 @@
-# ClauseGuard: RAG-Powered Legal Compliance & Risk Scoring Pipeline
+# ClauseGuard: MCP-Powered Legal Compliance & Risk Scoring Pipeline
 
-An agentic Retrieval-Augmented Generation (RAG) system that automates contract compliance reviews. ClauseGuard parses multi-format legal documents (`.pdf`, `.docx`, `.txt`), extracts risk-bearing clauses, evaluates them against internal corporate policies stored in a local vector database (Qdrant), scores potential risk levels, and flags violations for Human-in-the-Loop (HITL) review.
+An MCP-native agentic system that automates contract compliance reviews. ClauseGuard parses multi-format legal documents (`.pdf`, `.docx`, `.txt`), extracts risk-bearing clauses, evaluates them against internal corporate policies stored in a local vector database (Qdrant), scores potential risk levels, and flags violations for Human-in-the-Loop (HITL) review.
 
 ---
 
